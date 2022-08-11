@@ -126,10 +126,18 @@ class DuoT5ReRanker(TransformerBase):
             with torch.no_grad():
                 result = self.model(**enc).logits
             result = result[:, 0, (self.REL, self.NREL)]
+            result_softmax = F.softmax(result, dim=1)[:, 0].cpu().detach().tolist()
             result = F.log_softmax(result, dim=1)[:, 0].cpu().detach().tolist()
             for (qid, did1, did2), score in zip(batch['ids'], result):
                 scores[qid, did1] += score
                 scores[qid, did2] += (1 - score)
+            with open('duoT5.50.score.logsoftmax.tsv', 'a', encoding='utf-8') as f1:
+                for (qid, did1, did2), score in zip(batch['ids'], result):
+                    f1.write(qid + "\t" + did1 + "\t" + did2 +"\t" + format(score,'.10f') + "\t" + "logsoft" + "\n" )
+
+            with open('duoT5.50.score.softmax.tsv', 'a', encoding='utf-8') as f2:
+                for (qid, did1, did2), score in zip(batch['ids'], result_softmax):
+                    f2.write(qid + "\t" + did1 + "\t" + did2 +"\t" + format(score,'.10f') + "\t" + "softmax" + "\n" )
 
         score_list = []
         for record in run.itertuples(index=False):
